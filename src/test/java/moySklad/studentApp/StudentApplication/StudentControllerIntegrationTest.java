@@ -1,6 +1,8 @@
 package moySklad.studentApp.StudentApplication;
 
 import moySklad.studentApp.StudentApplication.dto.StudentDTO;
+import moySklad.studentApp.StudentApplication.entity.StudentEntity;
+import moySklad.studentApp.StudentApplication.repository.StudentRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -23,7 +25,16 @@ import static org.hamcrest.Matchers.notNullValue;
 public class StudentControllerIntegrationTest {
 
     @Autowired
-    TestRestTemplate restTemplate;
+    private TestRestTemplate restTemplate;
+
+    @Autowired
+    private StudentRepository repository;
+
+
+    private StudentEntity createTestStudent(String surname) {
+        StudentEntity emp = new StudentEntity(null, surname);
+        return repository.saveAndFlush(emp);
+    }
 
     @Test
     public void saveStudentTest() throws Exception {
@@ -31,21 +42,24 @@ public class StudentControllerIntegrationTest {
         ResponseEntity<String> response = restTemplate.postForEntity("/student", studentDTO, String.class);
         assertThat(response.getStatusCode(), is(HttpStatus.OK));
         assertThat(response.getBody().toString(), is("OK"));
+        repository.deleteAll(repository.findAllBySurname("QWERT"));
     }
 
     @Test
     public void getStudentTest() throws Exception {
-        ResponseEntity<StudentDTO> response = restTemplate.exchange("/student/1",
+        long id = createTestStudent("Петросян").getId();
+        ResponseEntity<StudentDTO> response = restTemplate.exchange("/student/{id}",
                 HttpMethod.GET, null, new ParameterizedTypeReference<StudentDTO>() {
-                });
+                }, id);
         StudentDTO dto = response.getBody();
         assertThat(response.getStatusCode(), is(HttpStatus.OK));
-        assertThat(dto.getSurname(), notNullValue());
+        assertThat(dto.getSurname(), is("Петросян"));
+        repository.delete(repository.findById(id).get());
     }
 
     @Test
     public void deleteStudentTest() throws Exception {
-        Long id = 1L;
+        long id = createTestStudent("Пушкин").getId();
         ResponseEntity<String> response = restTemplate.exchange("/student/{id}", HttpMethod.DELETE,null, String.class, id);
         assertThat(response.getStatusCode(), is(HttpStatus.OK));
         assertThat(response.getBody().toString(), is("OK"));
@@ -53,11 +67,15 @@ public class StudentControllerIntegrationTest {
 
     @Test
     public void getAllStudentTest() throws Exception {
+        long id = createTestStudent("Толстой").getId();
+        long id1 = createTestStudent("Тургенев").getId();
         ResponseEntity<List<StudentDTO>> response = restTemplate.exchange("/student",
                 HttpMethod.GET, null, new ParameterizedTypeReference<List<StudentDTO>>() {
                 });
         List<StudentDTO> dto = response.getBody();
         assertThat(response.getStatusCode(), is(HttpStatus.OK));
-        assertThat(dto.get(0).getSurname(), notNullValue());
+        assertThat(dto.isEmpty(), is(false));
+        repository.delete(repository.findById(id).get());
+        repository.delete(repository.findById(id1).get());
     }
 }

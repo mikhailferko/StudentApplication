@@ -10,4 +10,5 @@ public interface MarkRepository extends CrudRepository<MarkEntity, Long> {
 
     Iterable<MarkEntity> findAllByStudent(StudentEntity student);
 
+    MarkEntity saveAndFlush(MarkEntity emp);
 }

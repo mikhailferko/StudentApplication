@@ -8,4 +8,6 @@ import org.springframework.stereotype.Repository;
 public interface SubjectRepository extends CrudRepository<SubjectEntity, Long> {
 
     Iterable<SubjectEntity> findByName(String name);
+
+    SubjectEntity saveAndFlush(SubjectEntity emp);
 }

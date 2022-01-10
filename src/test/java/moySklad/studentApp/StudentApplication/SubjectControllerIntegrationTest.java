@@ -2,6 +2,9 @@ package moySklad.studentApp.StudentApplication;
 
 import moySklad.studentApp.StudentApplication.dto.StudentDTO;
 import moySklad.studentApp.StudentApplication.dto.SubjectDTO;
+import moySklad.studentApp.StudentApplication.entity.StudentEntity;
+import moySklad.studentApp.StudentApplication.entity.SubjectEntity;
+import moySklad.studentApp.StudentApplication.repository.SubjectRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,29 +27,43 @@ import static org.hamcrest.Matchers.notNullValue;
 public class SubjectControllerIntegrationTest {
 
     @Autowired
-    TestRestTemplate restTemplate;
+    private TestRestTemplate restTemplate;
+
+    @Autowired
+    private SubjectRepository repository;
+
+    private SubjectEntity createTestSubject(String name) {
+        SubjectEntity emp = new SubjectEntity(null, name);
+        return repository.saveAndFlush(emp);
+    }
 
     @Test
     public void saveSubjectTest() throws Exception {
-        SubjectDTO subjectDTO = new SubjectDTO(null, "QWERT");
+        SubjectDTO subjectDTO = new SubjectDTO(null, "QWERTY");
+        SubjectDTO subjectDTO1 = new SubjectDTO(null, "QWERTY");
         ResponseEntity<String> response = restTemplate.postForEntity("/subject", subjectDTO, String.class);
+        ResponseEntity<String> response1 = restTemplate.postForEntity("/subject", subjectDTO, String.class);
         assertThat(response.getStatusCode(), is(HttpStatus.OK));
+        assertThat(response1.getStatusCode(), is(HttpStatus.BAD_REQUEST));
         assertThat(response.getBody().toString(), is("OK"));
+        repository.deleteAll(repository.findByName("QWERTY"));
     }
 
     @Test
     public void getSubjectTest() throws Exception {
-        ResponseEntity<SubjectDTO> response = restTemplate.exchange("/subject/1",
+        long id = createTestSubject("TERVER").getId();
+        ResponseEntity<SubjectDTO> response = restTemplate.exchange("/subject/{id}",
                 HttpMethod.GET, null, new ParameterizedTypeReference<SubjectDTO>() {
-                });
+                }, id);
         SubjectDTO dto = response.getBody();
         assertThat(response.getStatusCode(), is(HttpStatus.OK));
-        assertThat(dto.getName(), notNullValue());
+        assertThat(dto.getName(), is("TERVER"));
+        repository.delete(repository.findById(id).get());
     }
 
     @Test
     public void deleteSubjectTest() throws Exception {
-        Long id = 1L;
+        long id = createTestSubject("SOPROMAT").getId();
         ResponseEntity<String> response = restTemplate.exchange("/subject/{id}", HttpMethod.DELETE,null, String.class, id);
         assertThat(response.getStatusCode(), is(HttpStatus.OK));
         assertThat(response.getBody().toString(), is("OK"));
@@ -54,11 +71,15 @@ public class SubjectControllerIntegrationTest {
 
     @Test
     public void getAllSubjectTest() throws Exception {
+        long id = createTestSubject("LINAL").getId();
+        long id1 = createTestSubject("VISHMAT").getId();
         ResponseEntity<List<SubjectDTO>> response = restTemplate.exchange("/subject",
                 HttpMethod.GET, null, new ParameterizedTypeReference<List<SubjectDTO>>() {
                 });
         List<SubjectDTO> dto = response.getBody();
         assertThat(response.getStatusCode(), is(HttpStatus.OK));
-        assertThat(dto.get(0).getName(), notNullValue());
+        assertThat(dto.isEmpty(), is(false));
+        repository.delete(repository.findById(id).get());
+        repository.delete(repository.findById(id1).get());
     }
 }
